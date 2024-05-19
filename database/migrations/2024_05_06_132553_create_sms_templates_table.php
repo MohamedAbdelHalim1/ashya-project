@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('sms_templates', function (Blueprint $table) {
             $table->id();
             $table->string('name')->nullable();
-            $table->text('content')->nullable()->default('content');
+            $table->text('content')->nullable();
             $table->timestamps();
         });
     }
