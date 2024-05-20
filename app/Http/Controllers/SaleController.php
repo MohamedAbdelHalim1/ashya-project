@@ -941,7 +941,7 @@ class SaleController extends Controller
     {
         $data = $request->all();
         //sms send start
-        $smsTemplate = SmsTemplate::where('is_default_ecommerce',1)->latest()->first();
+        $smsTemplate = SmsTemplate::where('is_default',1)->latest()->first();
         $smsProvider = ExternalService::where('active',true)->where('type','sms')->first();
         if($smsProvider && $smsTemplate)
         {
