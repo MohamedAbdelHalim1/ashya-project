@@ -163,7 +163,7 @@
             </tr>
             @endforeach
             <tr>
-                <td colspan="3" rowspan="4" style="border:1px solid #222;padding:1px 3px;text-align: center; vertical-align: top;">
+                <td colspan="3" rowspan="@if($general_setting->invoice_format == 'gst' && $general_setting->state == 2) 5 @else 4 @endif" style="border:1px solid #222;padding:1px 3px;text-align: center; vertical-align: top;">
                     {{trans('file.Note')}}<br>{{$lims_sale_data->sale_note}}
                 </td>
                 <td class="td-text" colspan="3" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);">
@@ -173,14 +173,42 @@
                         {{number_format((float)($lims_sale_data->total_price - ($lims_sale_data->total_tax+$lims_sale_data->order_tax) ) ,$general_setting->decimal, '.', ',')}}
                 </td>
             </tr>
-            <tr>
-                <td class="td-text" colspan="3" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);">
-                    {{trans('file.Tax')}}
-                </td>
-                <td class="td-text" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);text-align: center;font-size: 15px;">
-                    {{number_format((float)($lims_sale_data->total_tax+$lims_sale_data->order_tax) ,$general_setting->decimal, '.', ',')}}
-                </td>
-            </tr>
+            @if($general_setting->invoice_format == 'gst' && $general_setting->state == 1)
+                <tr>
+                    <td class="td-text" colspan="3" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);">
+                        IGST
+                    </td>
+                    <td class="td-text" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);text-align: center;font-size: 15px;">
+                        {{number_format((float)($lims_sale_data->total_tax+$lims_sale_data->order_tax) ,$general_setting->decimal, '.', ',')}}
+                    </td>
+                </tr>
+            @elseif($general_setting->invoice_format == 'gst' && $general_setting->state == 2)
+                <tr>
+                    <td class="td-text" colspan="3" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);">
+                        SGST
+                    </td>
+                    <td class="td-text" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);text-align: center;font-size: 15px;">
+                        {{number_format( ($lims_sale_data->total_tax+$lims_sale_data->order_tax) / 2 , $general_setting->decimal, '.', ',')}}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="td-text" colspan="3" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);">
+                        CGST
+                    </td>
+                    <td class="td-text" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);text-align: center;font-size: 15px;">
+                        {{number_format( ($lims_sale_data->total_tax+$lims_sale_data->order_tax) / 2 , $general_setting->decimal, '.', ',')}}
+                    </td>
+                </tr>
+            @else
+                <tr>
+                    <td class="td-text" colspan="3" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);">
+                        {{trans('file.Tax')}}
+                    </td>
+                    <td class="td-text" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);text-align: center;font-size: 15px;">
+                        {{number_format((float)($lims_sale_data->total_tax+$lims_sale_data->order_tax) ,$general_setting->decimal, '.', ',')}}
+                    </td>
+                </tr>
+            @endif
             <tr>
                 <td class="td-text" colspan="3" style="border:1px solid #222;padding:1px 3px;background-color:rgb(205, 218, 235);">
                     {{trans('file.Discount')}}

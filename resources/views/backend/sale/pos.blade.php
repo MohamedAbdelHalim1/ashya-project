@@ -887,6 +887,15 @@
                                         <label>{{trans('file.Unit Discount')}}</label>
                                         <input type="text" name="edit_discount" class="form-control numkey">
                                     </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>{{trans('file.Price Option')}}</strong> </label>
+                                            <div class="input-group">
+                                              <select class="form-control selectpicker" name="price_option" class="price-option">
+                                              </select>
+                                          </div>
+                                        </div>
+                                    </div>
                                     <div class="col-md-4 form-group">
                                         <label>{{trans('file.Unit Price')}}</label>
                                         <input type="text" name="edit_unit_price" class="form-control numkey" step="any">
@@ -911,6 +920,10 @@
                                         <label>{{trans('file.Product Unit')}}</label>
                                         <select name="edit_unit" class="form-control selectpicker">
                                         </select>
+                                    </div>
+                                    <div class="col-md-4 form-group">
+                                        <label>{{trans('file.Cost')}}</label>
+                                        <p id="product-cost"></p>
                                     </div>
                                 </div>
                                 <button type="button" name="update_btn" class="btn btn-primary">{{trans('file.update')}}</button>
@@ -1360,6 +1373,8 @@ var qty_list = [];
 
 // array data with selection
 var product_price = [];
+var wholesale_price = [];
+var cost = [];
 var product_discount = [];
 var tax_rate = [];
 var tax_name = [];
@@ -1978,7 +1993,6 @@ lims_productcodeSearch.autocomplete({
             productSearch(data);
         }
         else if(ui.content.length == 0 && $('#lims_productcodeSearch').val().length == 13) {
-            console.log('ss');
           productSearch($('#lims_productcodeSearch').val()+'|'+1);
         }
     },
@@ -2020,6 +2034,10 @@ $("#myTable").on('click', '.minus', function() {
         checkQuantity(String(qty), true);
     else
         checkDiscount(qty, true);
+});
+
+$("select[name=price_option]").on("change", function () {
+    $("#editModal input[name=edit_unit_price]").val($(this).val());
 });
 
 $("#myTable").on("change", ".batch-no", function () {
@@ -2087,6 +2105,7 @@ $("table.order-list tbody").on("click", ".ibtnDel", function(event) {
     audio.play();
     rowindex = $(this).closest('tr').index();
     product_price.splice(rowindex, 1);
+    wholesale_price.splice(rowindex, 1);
     product_discount.splice(rowindex, 1);
     tax_rate.splice(rowindex, 1);
     tax_name.splice(rowindex, 1);
@@ -2500,6 +2519,11 @@ function addNewProduct(data){
     else {
         product_price.splice(rowindex, 0, parseFloat(data[2] * currency['exchange_rate']) + parseFloat(data[2] * currency['exchange_rate'] * customer_group_rate));
     }
+    if(data[16])
+        wholesale_price.splice(rowindex, 0, parseFloat(data[16] * currency['exchange_rate']) + parseFloat(data[16] * currency['exchange_rate'] * customer_group_rate));
+    else
+        wholesale_price.splice(rowindex, 0, '{{number_format(0, $general_setting->decimal, '.', '')}}');
+    cost.splice(rowindex, 0, parseFloat(data[17] * currency['exchange_rate']));
     product_discount.splice(rowindex, 0, '{{number_format(0, $general_setting->decimal, '.', '')}}');
     tax_rate.splice(rowindex, 0, parseFloat(data[3]));
     tax_name.splice(rowindex, 0, data[4]);
@@ -2537,9 +2561,18 @@ function addNewProduct(data){
     localStorage.setItem("localStorageSaleUnitOperationValue", localStorageSaleUnitOperationValue);
     checkQuantity(data[15], true);
     localStorage.setItem("tbody-id", $("table.order-list tbody").html());
-    if(data[13]) {
+    if(data[13] || data[16]) {
+        populatePriceOption();
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.edit-product').click();
     }
+}
+
+function populatePriceOption() {
+    $('#editModal select[name=price_option]').empty();
+    $('#editModal select[name=price_option]').append('<option value="'+ product_price[rowindex] +'">'+ product_price[rowindex] +'</option>');
+    if(wholesale_price[rowindex] > 0)
+        $('#editModal select[name=price_option]').append('<option value="'+ wholesale_price[rowindex] +'">'+ wholesale_price[rowindex] +'</option>');
+    $('.selectpicker').selectpicker('refresh');
 }
 
 function edit(){
@@ -2550,7 +2583,8 @@ function edit(){
         htmlText = '<div class="col-md-12 form-group imei-section"><label>IMEI or Serial Numbers</label><input type="text" name="imei_numbers" value="'+imeiNumbers+'" class="form-control imei_number" placeholder="Type imei or serial numbers and separate them by comma. Example:1001,2001" step="any"></div>';
         $("#editModal .modal-element").append(htmlText);
     }
-
+    populatePriceOption();
+    $("#product-cost").text(cost[rowindex]);
     var row_product_name_code = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(1)').text();
     $('#modal_header').text(row_product_name_code);
 
@@ -2949,6 +2983,7 @@ function pointCalculation() {
 function cancel(rownumber) {
     while(rownumber >= 0) {
         product_price.pop();
+        wholesale_price.pop();
         product_discount.pop();
         tax_rate.pop();
         tax_name.pop();

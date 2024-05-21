@@ -1629,6 +1629,8 @@ class SaleController extends Controller
         $product[] = $lims_product_data->is_imei;
         $product[] = $lims_product_data->is_variant;
         $product[] = $qty;
+        $product[] = $lims_product_data->wholesale_price;
+        $product[] = $lims_product_data->cost;
         return $product;
 
     }

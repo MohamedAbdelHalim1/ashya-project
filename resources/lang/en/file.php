@@ -1073,6 +1073,8 @@ return [
 	"Default Online" => "Default Online",
 	"Top Up" => "Top Up",
 	"Coupon Name" => "Coupon Name",
+	"Wholesale Price" => "Wholesale Price",
+	"Price Option" => "Price Option",
 ];
 
 ?>
