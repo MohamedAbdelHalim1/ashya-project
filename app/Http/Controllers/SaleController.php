@@ -941,7 +941,7 @@ class SaleController extends Controller
     {
         $data = $request->all();
         //sms send start
-        $smsTemplate = SmsTemplate::where('is_default_ecommerce',1)->latest()->first();
+        $smsTemplate = SmsTemplate::where('is_default',1)->latest()->first();
         $smsProvider = ExternalService::where('active',true)->where('type','sms')->first();
         if($smsProvider && $smsTemplate)
         {
@@ -1629,6 +1629,8 @@ class SaleController extends Controller
         $product[] = $lims_product_data->is_imei;
         $product[] = $lims_product_data->is_variant;
         $product[] = $qty;
+        $product[] = $lims_product_data->wholesale_price;
+        $product[] = $lims_product_data->cost;
         return $product;
 
     }

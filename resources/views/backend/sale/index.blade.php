@@ -1041,7 +1041,8 @@
                         $(':checkbox:checked').each(function(i){
                             if(i){
                                 var sale = $(this).closest('tr').data('sale');
-                                sale_id[i-1] = sale[13];
+                                if(sale)
+                                    sale_id[i-1] = sale[13];
                             }
                         });
                         if(sale_id.length && confirm("Are you sure want to delete?")) {

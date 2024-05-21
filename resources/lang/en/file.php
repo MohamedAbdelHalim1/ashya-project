@@ -1075,6 +1075,8 @@ return [
 	"Coupon Name" => "Coupon Name",
 	"Email Sent" => "Email Sent",
 	"Status" => "Status",
+	"Wholesale Price" => "Wholesale Price",
+	"Price Option" => "Price Option",
 ];
 
 ?>

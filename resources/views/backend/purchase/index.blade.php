@@ -692,7 +692,8 @@
                         $(':checkbox:checked').each(function(i){
                             if(i){
                                 var purchase = $(this).closest('tr').data('purchase');
-                                purchase_id[i-1] = purchase[3];
+                                if(purchase)
+                                    purchase_id[i-1] = purchase[3];
                             }
                         });
                         if(purchase_id.length && confirm("Are you sure want to delete?")) {
