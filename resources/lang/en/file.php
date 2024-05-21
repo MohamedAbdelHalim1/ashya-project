@@ -1073,6 +1073,8 @@ return [
 	"Default Online" => "Default Online",
 	"Top Up" => "Top Up",
 	"Coupon Name" => "Coupon Name",
+	"Email Sent" => "Email Sent",
+	"Status" => "Status",
 ];
 
 ?>
