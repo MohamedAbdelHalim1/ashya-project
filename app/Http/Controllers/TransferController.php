@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\TransferDetails;
 use Illuminate\Http\Request;
 use App\Models\Warehouse;
 use App\Models\Product;
@@ -14,6 +15,7 @@ use App\Models\ProductVariant;
 use App\Models\ProductBatch;
 use Auth;
 use DB;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Validator;
@@ -160,9 +162,17 @@ class TransferController extends Controller
                 $nestedData['total_cost'] = number_format($transfer->total_cost, config('decimal'));
                 $nestedData['total_tax'] = number_format($transfer->total_tax, config('decimal'));
                 $nestedData['grand_total'] = number_format($transfer->grand_total, config('decimal'));
+                
+                if($transfer->is_sent == 1) {
+                    $nestedData['is_sent'] = '<div class="badge badge-success">'.trans('file.Yes').'</div>';
+                    $status = trans('file.Yes');
+                }else{
+                    $nestedData['is_sent'] = '<div class="badge badge-danger">'.trans('file.No').'</div>';
+                    $status = trans('file.No');
+                }
 
                 if($transfer->status == 1) {
-                    $nestedData['status'] = '<div class="badge badge-danger">'.trans('file.Completed').'</div>';
+                    $nestedData['status'] = '<div class="badge badge-success">'.trans('file.Completed').'</div>';
                     $status = trans('file.Completed');
                 }
                 elseif($transfer->status == 2) {
@@ -358,7 +368,9 @@ class TransferController extends Controller
 
     public function store(Request $request)
     {
+       
         $data = $request->except('document');
+
         //return dd($data);
         $data['user_id'] = Auth::id();
         $data['reference_no'] = 'tr-' . date("Ymd") . '-'. date("his");
@@ -496,12 +508,62 @@ class TransferController extends Controller
             ProductTransfer::create($product_transfer);
         }
 
+        // Maild Send Start
+        $fromWareHouse = Warehouse::find($data['from_warehouse_id']);
+        $toWareHouse = Warehouse::find($data['to_warehouse_id']);
+        $mailData = [];
+
+        //Date
+        
+        $mailData['date'] = date("Y-m-d", strtotime(str_replace("/", "-", $lims_transfer_data->created_at)));;
+        $mailData['reference_no'] = $lims_transfer_data->reference_no;
+        $mailData['status'] = $lims_transfer_data->status;
+        $mailData['total_cost'] = $lims_transfer_data->total_cost;
+        $mailData['shipping_cost'] = $lims_transfer_data->shipping_cost;
+        $mailData['grand_total'] = $lims_transfer_data->grand_total;
+        
+        //From: Warehouse
+        $mailData['from_warehouse'] = $fromWareHouse->name;
+        $mailData['from_phone'] = $fromWareHouse->phone;
+        $mailData['from_email'] = $fromWareHouse->email;
+        $mailData['from_address'] = $fromWareHouse->address;
+
+        //To: Warehouse
+        $mailData['to_warehouse'] = $toWareHouse->name;
+        $mailData['to_phone'] = $toWareHouse->phone;
+        $mailData['to_email'] = $toWareHouse->email;
+        $mailData['to_address'] = $toWareHouse->address;
+
+        $productTransferData = $this->getProductTransferData($lims_transfer_data->id);
+        $mailData['products'] = $productTransferData['products'];
+        $mailData['qty'] = $productTransferData['qty'];
+        $mailData['unit'] = $productTransferData['unit'];
+        $mailData['tax'] = $productTransferData['tax'];
+        $mailData['tax_rate'] = $productTransferData['tax_rate'];
+        $mailData['total'] = $productTransferData['total'];
+        $mailData['batch_no'] = $productTransferData['batch_no'];
+        
+        try{
+            Mail::to($mailData['to_email'])
+            ->send(new TransferDetails($mailData));
+            Mail::to($mailData['from_email'])
+            ->send(new TransferDetails($mailData));
+            $lims_transfer_data->update(['is_sent'=> true]);
+        }
+        catch(\Exception $e){
+            $lims_transfer_data->update(['is_sent'=> false]);
+
+            return $this->setErrorMessage('Please Setup Your Mail Credentials First.');
+        }
+        
+
         return redirect('transfers')->with('message', 'Transfer created successfully');
     }
 
     public function productTransferData($id)
     {
         $lims_product_transfer_data = ProductTransfer::where('transfer_id', $id)->get();
+
         foreach ($lims_product_transfer_data as $key => $product_transfer_data) {
             $product = Product::find($product_transfer_data->product_id);
             $unit = Unit::find($product_transfer_data->purchase_unit_id);
@@ -526,7 +588,34 @@ class TransferController extends Controller
         }
         return $product_transfer;
     }
+    public function getProductTransferData($id)
+    {
+        $lims_product_transfer_data = ProductTransfer::where('transfer_id', $id)->get();
 
+        foreach ($lims_product_transfer_data as $key => $product_transfer_data) {
+            $product = Product::find($product_transfer_data->product_id);
+            $unit = Unit::find($product_transfer_data->purchase_unit_id);
+            if($product_transfer_data->variant_id) {
+                $lims_product_variant_data = ProductVariant::select('item_code')->FindExactProduct($product_transfer_data->product_id, $product_transfer_data->variant_id)->first();
+                $product->code = $lims_product_variant_data->item_code;
+            }
+            $product_transfer['products'][$key] = $product->name . ' [' . $product->code. ']';
+            if($product_transfer_data->imei_number)
+                $product_transfer['imei_number'][$key] .= '<br>IMEI or Serial Number: ' . $product_transfer_data->imei_number;
+            $product_transfer['qty'][$key] = $product_transfer_data->qty;
+            $product_transfer['unit'][$key] = $unit->unit_code;
+            $product_transfer['tax'][$key] = $product_transfer_data->tax;
+            $product_transfer['tax_rate'][$key] = $product_transfer_data->tax_rate;
+            $product_transfer['total'][$key] = $product_transfer_data->total;
+            if($product_transfer_data->product_batch_id) {
+                $product_batch_data = ProductBatch::select('batch_no')->find($product_transfer_data->product_batch_id);
+                $product_transfer['batch_no'][$key] = $product_batch_data->batch_no;
+            }
+            else
+                $product_transfer['batch_no'][$key] = 'N/A';
+        }
+        return $product_transfer;
+    }
     public function transferByCsv()
     {
         $role = Role::find(Auth::user()->role_id);
