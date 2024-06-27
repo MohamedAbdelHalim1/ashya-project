@@ -1110,7 +1110,6 @@ class PurchaseController extends Controller
     public function addPayment(Request $request)
     {
         $data = $request->all();
-        return $data;
         $lims_purchase_data = Purchase::find($data['purchase_id']);
         $lims_purchase_data->paid_amount += $data['amount'];
         $balance = $lims_purchase_data->grand_total - $lims_purchase_data->paid_amount;
